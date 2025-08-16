@@ -1,0 +1,26 @@
+---
+-   name: Set Up
+    hosts: all
+    remote_user: root
+    tasks:
+      # Certbot is installed only when provider is letsencrypt
+      - name: Установить Certbot
+        include_role:
+          name: certbot
+        when: tls is defined and tls.provider == 'letsencrypt'
+
+      - name: Скопировать файлы
+        include_role:
+          name: copy
+
+      - name: Настроить Docker
+        include_role:
+          name: docker
+
+      - name: Настроить Nginx
+        include_role:
+          name: nginx
+
+      - name: Запустить сервисы
+        include_role:
+          name: start

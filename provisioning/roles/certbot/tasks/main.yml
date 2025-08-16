@@ -1,0 +1,29 @@
+---
+# Install certbot into an isolated venv at /opt/certbot.
+# This is the official alternative method (no snap) from the certbot documentation.
+- name: Установить python3-venv
+  apt:
+    name:
+      - python3-venv
+      - python3-full
+    state: present
+    update_cache: yes
+
+- name: Создать venv для certbot
+  command: python3 -m venv /opt/certbot
+  args:
+    creates: /opt/certbot/bin/pip
+
+- name: Установить certbot в venv
+  pip:
+    name: certbot
+    version: '>=5.4'
+    virtualenv: /opt/certbot
+    state: present
+
+- name: Создать symlink для certbot
+  file:
+    src: /opt/certbot/bin/certbot
+    dest: /usr/bin/certbot
+    state: link
+    force: yes

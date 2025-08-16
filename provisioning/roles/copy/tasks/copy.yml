@@ -1,0 +1,18 @@
+---
+- name: Remove old directory and its contents
+  file:
+    path: '{{ common.path }}'
+    state: absent
+
+- name: Install rsync (dependency of the synchronize module)
+  package:
+    name: rsync
+    state: present
+
+- name: Copy files
+  synchronize:
+    src: ../../../../
+    dest: '{{ common.path }}'
+    rsync_opts:
+      - "--exclude=.git"
+      - "--exclude=.idea"

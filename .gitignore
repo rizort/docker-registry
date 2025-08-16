@@ -1,0 +1,15 @@
+.idea
+.env
+docker/registry/*
+
+docker/nginx/certs/*
+!certs/.gitignore
+
+docker/nginx/auth/*
+!docker/nginx/auth/ips_filtering.conf
+
+docker/nginx/logs/*
+!docker/nginx/logs/.gitignore
+
+provisioning/group_vars/all.yml
+provisioning/hosts.yml

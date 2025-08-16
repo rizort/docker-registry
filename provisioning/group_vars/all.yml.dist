@@ -1,0 +1,62 @@
+#--------------------------------------------------------------------------
+# COMMON
+#--------------------------------------------------------------------------
+
+common:
+  # Remote folder path
+  path: '~/docker-registry'
+
+#--------------------------------------------------------------------------
+# BASIC AUTH
+#--------------------------------------------------------------------------
+
+basic_auth:
+  enabled: true
+
+  # Basic auth credentials.
+  # Optional. If empty, will be generated.
+  username: ''
+  password: ''
+
+  # Used to generate a username.
+  # Required.
+  username_length: 20
+
+  # Used to generate a password.
+  # Required.
+  password_length: 20
+
+#--------------------------------------------------------------------------
+# IP FILTERING
+#--------------------------------------------------------------------------
+
+ip_filtering:
+  enabled: true
+
+  # Allow access only from these IP addresses.
+  # Optional. If empty, filter will not be applied.
+  # Format example:
+  # allow_ips:
+  #  - '123.123.123.123'
+  allow_ips:
+
+#--------------------------------------------------------------------------
+# TLS
+#--------------------------------------------------------------------------
+
+tls:
+  enabled: true
+
+  # TLS certificate provider.
+  # Possible values: selfsigned, letsencrypt
+  provider: 'selfsigned'
+
+  # IP address or hostname of the server.
+  # Used as CN for the self-signed certificate and as --ip-address for letsencrypt.
+  domain: ''
+
+  # Email for Let's Encrypt registration (only when provider is letsencrypt).
+  # Requires Certbot >= 5.4. Certificates are issued for 6 days (shortlived profile),
+  # so automatic renewal via cron every 12 hours is mandatory.
+  # Certbot uses standalone mode; port 80 must be free on the host.
+  email: ''

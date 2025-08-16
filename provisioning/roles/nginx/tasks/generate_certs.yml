@@ -1,0 +1,101 @@
+---
+# Self-signed certificate — generated locally on the server
+- name: Генерация самоподписанного сертификата
+  block:
+    - name: Удалить старые сертификаты
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - '{{ common.path }}/docker/nginx/certs/cert.crt'
+        - '{{ common.path }}/docker/nginx/certs/cert.key'
+
+    - name: Сгенерировать приватный ключ OpenSSL
+      community.crypto.openssl_privatekey:
+        path: '{{ common.path }}/docker/nginx/certs/cert.key'
+
+    - name: Создать CSR для самоподписанного сертификата
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: '{{ common.path }}/docker/nginx/certs/cert.key'
+        common_name: '{{ tls.domain | default("localhost") }}'
+        subject_alt_name: "{{ ['IP:' + tls.domain] if tls.domain | default('') | ansible.utils.ipaddr else ['DNS:' + tls.domain | default('localhost')] }}"
+      register: csr
+
+    - name: Создать самоподписанный сертификат
+      community.crypto.x509_certificate:
+        path: '{{ common.path }}/docker/nginx/certs/cert.crt'
+        privatekey_path: '{{ common.path }}/docker/nginx/certs/cert.key'
+        csr_content: '{{ csr.csr }}'
+        provider: selfsigned
+  when: (tls is not defined) or (tls.provider | default('selfsigned')) == 'selfsigned'
+
+# Let's Encrypt certificate for an IP address (Certbot >= 5.4, shortlived profile).
+# Certificate is issued for 6 days — automatic renewal is required.
+# Certbot uses standalone mode and binds to port 80 during issuance/renewal.
+- name: Получение сертификата Let's Encrypt для IP-адреса
+  block:
+    # Deploy hook copies updated certificates to nginx and reloads it.
+    # Called automatically by certbot after a successful renewal.
+    - name: Создать директорию для deploy-hook
+      file:
+        path: /etc/letsencrypt/renewal-hooks/deploy
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Создать deploy-hook для перекладывания сертификатов в nginx
+      copy:
+        dest: /etc/letsencrypt/renewal-hooks/deploy/copy-to-nginx.sh
+        content: |
+          #!/bin/sh
+          cp /etc/letsencrypt/live/{{ tls.domain }}/fullchain.pem {{ common.path }}/docker/nginx/certs/cert.crt
+          cp /etc/letsencrypt/live/{{ tls.domain }}/privkey.pem  {{ common.path }}/docker/nginx/certs/cert.key
+          chmod 644 {{ common.path }}/docker/nginx/certs/cert.crt
+          chmod 600 {{ common.path }}/docker/nginx/certs/cert.key
+          cd {{ common.path }} && docker compose exec nginx nginx -s reload
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Запросить сертификат через certbot (standalone, IP)
+      command: >
+        certbot certonly
+        --standalone
+        --preferred-profile shortlived
+        --ip-address {{ tls.domain }}
+        --non-interactive
+        --agree-tos
+        --email {{ tls.email }}
+      args:
+        creates: /etc/letsencrypt/live/{{ tls.domain }}/fullchain.pem
+
+    - name: Скопировать цепочку сертификатов в директорию nginx
+      copy:
+        src: /etc/letsencrypt/live/{{ tls.domain }}/fullchain.pem
+        dest: '{{ common.path }}/docker/nginx/certs/cert.crt'
+        remote_src: yes
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Скопировать приватный ключ в директорию nginx
+      copy:
+        src: /etc/letsencrypt/live/{{ tls.domain }}/privkey.pem
+        dest: '{{ common.path }}/docker/nginx/certs/cert.key'
+        remote_src: yes
+        owner: root
+        group: root
+        mode: '0600'
+
+    # Certbot creates a systemd timer certbot.timer upon installation.
+    # For more reliable renewal of 6-day certificates, add a cron job.
+    - name: Настроить cron для автообновления сертификата
+      cron:
+        name: certbot renew
+        minute: '0'
+        hour: '*/12'
+        job: 'certbot renew --quiet'
+        user: root
+  when: tls is defined and tls.provider == 'letsencrypt'
+

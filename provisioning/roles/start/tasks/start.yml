@@ -1,0 +1,29 @@
+---
+- name: Run docker-compose project
+  community.docker.docker_compose_v2:
+    project_src: '{{ common.path }}'
+    state: present
+    build: always
+    recreate: always
+
+- name: How to add registry
+  pause:
+    seconds: 0
+    prompt: |+
+
+      --------------
+      RUN THESE COMMANDS LOCALLY
+      
+      # Add insecure registry
+      $ sudo nano /etc/docker/daemon.json
+      { "insecure-registries": ["{{ ansible_host }}:5000"] }
+
+      # Restart Docker service to apply changes
+      $ sudo service docker restart
+      
+      {% if basic_auth.enabled | default(false) %}
+      # Run one-line repository login command
+      $ echo '{{ password }}' | docker login {{ ansible_host }}:5000 --username {{ username }} --password-stdin
+      {% endif %}
+      --------------
+

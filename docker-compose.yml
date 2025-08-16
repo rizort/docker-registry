@@ -1,0 +1,22 @@
+services:
+  nginx:
+    image: nginx:1.29.3-alpine
+    restart: always
+    ports:
+      - '5000:5000'
+    depends_on:
+      - registry
+    volumes:
+      - ./docker/nginx/conf.d/registry.conf:/etc/nginx/conf.d/registry.conf:ro
+      - ./docker/nginx/auth:/etc/nginx/auth:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+      - ./docker/nginx/logs:/var/log/nginx
+
+  registry:
+    image: registry:3.0.0
+    restart: always
+    volumes:
+      - registry:/var/lib/registry
+
+volumes:
+  registry:

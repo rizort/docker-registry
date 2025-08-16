@@ -1,0 +1,13 @@
+---
+- name: Generate IP filtering config
+  copy:
+    dest: '{{ common.path }}/docker/nginx/auth/ips_filtering.conf'
+    content: |
+      {% for ip in ip_filtering.allow_ips %}
+      allow {{ ip }};
+      {% endfor %}
+      deny all;
+    owner: root
+    group: root
+    mode: '0644'
+  when: ip_filtering.enabled | default(false) and ip_filtering.allow_ips is iterable and ip_filtering.allow_ips | length > 0

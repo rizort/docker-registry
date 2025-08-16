@@ -1,0 +1,10 @@
+basic_auth:
+  enabled: true
+  username: ''
+  password: ''
+  username_length: 20
+  password_length: 20
+
+ip_filtering:
+  enabled: true
+  allow_ips: []
